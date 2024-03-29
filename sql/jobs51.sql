@@ -29,13 +29,14 @@ CREATE INDEX index_job_title ON job51 (jobTitle);
 DROP TABLE IF EXISTS User;
 CREATE TABLE User (
     username VARCHAR(30) PRIMARY KEY,
+    name VARCHAR(30),
     password VARCHAR(255) NOT NULL,
     gender VARCHAR(2)  default '男',
     age INT,
     major VARCHAR(50),
     interest_position VARCHAR(255),
-    security_question VARCHAR(255),
-    security_answer VARCHAR(255),
+    password_question VARCHAR(255),
+    password_answer VARCHAR(255),
     interest_city VARCHAR(255),
     education VARCHAR(7) default '本科',
     avatar VARCHAR(255)
