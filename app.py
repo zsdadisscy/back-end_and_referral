@@ -2,10 +2,10 @@ from datetime import timedelta
 from flask import Flask
 import user
 from flask_jwt_extended import JWTManager
-
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+CORS(app)
 app.register_blueprint(user.user_api, url_prefix='/user')
 
 # 设置普通JWT过期时间
