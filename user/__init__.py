@@ -45,6 +45,7 @@ def login():
     else:
         return jsonify({
             "result": "false",
+            "msg": "用户名或密码错误"
         })
 
 
@@ -118,4 +119,46 @@ def get_info():
         return jsonify({
             "result": "false",
             "msg": "未知错误"
+        })
+
+@user_api.route('/get_status', methods=['GET'])
+@jwt_required()
+def get_status():
+    current_user = get_jwt_identity()
+    conn, cursor = init_database()
+    cursor.execute('SELECT * FROM User WHERE username="%s"' % current_user)
+    try:
+        data = cursor.fetchall()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        for d in data:
+            if not d:
+                return jsonify({
+                    "result": "success",
+                    "data": '未完善'
+                })
+    except:
+        return jsonify({
+            "result": "false",
+            "msg": "未知错误"
+        })
+
+@user_api.route('/judge_user', methods=['POST'])
+def judge_user():
+    username = request.json.get("username", None)
+    conn, cursor = init_database()
+    user = cursor.execute('SELECT * FROM User WHERE username="%s"' % username)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    if user:
+        return jsonify({
+            "result": "success",
+            "msg": "用户存在"
+        })
+    else:
+        return jsonify({
+            "result": "false",
+            "msg": "用户不存在"
         })
