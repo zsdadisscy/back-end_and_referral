@@ -6,6 +6,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, create_refresh_token
 from sql import init_database
+import os
+from werkzeug.utils import secure_filename
 
 user_api = Blueprint('user', __name__)
 
@@ -48,7 +50,7 @@ def login():
             "msg": "用户名或密码错误"
         })
 
-
+# 注册
 @user_api.route('/register', methods=['POST'])
 def register():
     username = request.json.get("username", None)
@@ -85,6 +87,7 @@ def register():
             'msg': '注册失败'
         })
 
+# 获取用户信息
 @user_api.route('/get_info', methods=['GET'])
 @jwt_required()
 def get_info():
@@ -121,6 +124,7 @@ def get_info():
             "msg": "未知错误"
         })
 
+# 判断是否需要完善用户信息
 @user_api.route('/get_status', methods=['GET'])
 @jwt_required()
 def get_status():
@@ -144,17 +148,20 @@ def get_status():
             "msg": "未知错误"
         })
 
+# 判断用户是否存在
 @user_api.route('/judge_user', methods=['POST'])
 def judge_user():
     username = request.json.get("username", None)
     conn, cursor = init_database()
     user = cursor.execute('SELECT * FROM User WHERE username="%s"' % username)
+    data = cursor.fetchall()
     conn.commit()
     cursor.close()
     conn.close()
     if user:
         return jsonify({
             "result": "success",
+            "password_question": data[0][7],
             "msg": "用户存在"
         })
     else:
@@ -162,3 +169,149 @@ def judge_user():
             "result": "false",
             "msg": "用户不存在"
         })
+
+# 判断jwt是否有效
+@user_api.route('/judge_online', methods=['GET'])
+@jwt_required()
+def judge_online():
+    print(request)
+    return jsonify({
+        'result': 'success'
+    })
+
+# 验证密保问题
+@user_api.route('/validation_secure', methods=['POST'])
+def validation_secure():
+    username = request.json.get("username", None)
+    password_answer = request.json.get('password_answer', None)
+    conn, cursor = init_database()
+    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    if user:
+        return jsonify({
+            "result": "success",
+        })
+    else:
+        return jsonify({
+            "result": "false",
+        })
+
+
+# 利用密保修改密码
+@user_api.route('/secure_passwd', methods=['POST'])
+def secure_passwd():
+    username = request.json.get("username", None)
+    password_answer = request.json.get('password_answer', None)
+    password = request.json.get('password', None)
+    confirm_password = request.json.get('confirm_password', None)
+    if not password:
+        return jsonify(
+            {
+                'result': "false",
+                'msg': '密码不能为空'
+            }
+        )
+    if password != confirm_password:
+        return jsonify(
+            {
+                'result': 'false',
+                'msg': '两次密码不一致'
+            }
+        )
+    conn, cursor = init_database()
+    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
+    if not user:
+        return jsonify({
+            'result': 'false',
+            'msg': "用户不存在或者密保答案错误"
+        })
+    res = cursor.execute('UPDATE User SET password = "%s" WHERE username = "%s"' % (password, username))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    if res:
+        return jsonify({
+            'result': 'success'
+        })
+    return jsonify({
+        'result': 'false',
+        'msg': '修改密码失败，请稍后再试'
+    })
+
+# 用户修改密码
+@user_api.route('/mod_passwd', methods=['POST'])
+@jwt_required()
+def mod_passwd():
+    current_user = get_jwt_identity()
+    conn, cursor = init_database()
+    old_password = request.json.get('old_password', None)
+    new_password = request.json.get('new_password', None)
+    confirm_new_password = request.json.get('confirm_new_password', None)
+    if not new_password:
+        return jsonify({
+            'result': 'false',
+            'msg': '新密码不能为空'
+        })
+    if new_password != confirm_new_password:
+        return jsonify({
+            'result': 'success',
+            'msg': '两次密码不一致'
+        })
+    res = cursor.execute('SELECT * FROM User WHERE username = "%s" AND password = "%s"' % (current_user, old_password))
+    if not res:
+        return jsonify({
+            'result': 'false',
+            'msg': '原密码不正确'
+        })
+    res = cursor.execute('UPDATE User SET password = "%s" WHERE username = "%s"' % (new_password, current_user))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    if res:
+        return jsonify({
+            'result': 'success'
+        })
+    return jsonify({
+        'result': 'false',
+        'msg': '修改失败请稍后再试'
+    })
+
+# 修改用户资料
+@user_api.route('/mod_info', methods=['POST'])
+@jwt_required()
+def mod_info():
+    current_user = get_jwt_identity()
+    conn, cursor = init_database()
+    cursor.execute('SELECT * FROM USER WHERE username="%s"' % current_user)
+    user = cursor.fetchone()
+
+    name = request.json.get('name', user[1])
+    gender = request.json.get('gender', user[3])
+    age = int(request.json.get('age', user[4]))
+    major = request.json.get('major', user[5])
+    interest_position = request.json.get('interest_position', user[6])
+    interest_city = request.json.get('interest_city', user[9])
+    education = request.json.get('education', user[10])
+    if 'avatar' not in request.files:
+        avatar = user[11]
+    else:
+        avatar = request.files['avatar']
+        filename = secure_filename(avatar.filename)
+        avatar.save(os.path.join('static/avatar', filename+current_user))
+        avatar = "http://http://47.105.178.110:8000/" + os.path.join('static/avatar', filename + current_user)
+    res = cursor.execute(
+        "UPDATE User SET name = '%s', gender = '%s', age = '%d', major = '%s', interest_position = '%s',interest_city = '%s',education = '%s', avatar = '%s' WHERE username = '%s';" %
+        (name, gender, age, major, interest_position, interest_city, education, avatar, current_user))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    if res:
+        return jsonify({
+            'result': 'success'
+        })
+    return jsonify({
+        'result': 'false',
+        'msg': '修改失败，请稍后再试'
+    })
