@@ -42,4 +42,14 @@ CREATE TABLE User (
     avatar VARCHAR(255)
 );
 
+# 加入索引
+CREATE INDEX index_job_title_record ON job51_record (jobTitle);
 
+# 时间戳
+CREATE TABLE job51_record (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    jobTitle VARCHAR(30),
+                    # 添加插入时间
+                    insertTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+                );

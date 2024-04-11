@@ -9,3 +9,6 @@ def init_database():
     conn = pymysql.connect(host='localhost', user='root', passwd='Scy123456', charset='utf8mb4', db='jobs51')
     cursor = conn.cursor()
     return conn, cursor
+
+if __name__ == '__main__':
+    print('运行init_database成功')

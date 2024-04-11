@@ -5,7 +5,7 @@
 # @Software: PyCharm
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, create_refresh_token
-from sql import init_database
+from sql_operation import init_database
 import os
 from werkzeug.utils import secure_filename
 
@@ -30,7 +30,6 @@ def login():
     conn, cursor = init_database()
     user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password="%s"'% (username, password))
     # cursor.execute('INSERT INTO User(username, password, gender, education) VALUES ("admin1", "admin1", "男", "本科");')
-    data = cursor.fetchall()
     conn.commit()
     conn.close()
     cursor.close()
@@ -42,7 +41,6 @@ def login():
                 "result": "success",
                 "access":access_token,
                 "refresh":refresh_token,
-                "user":data
             })
     else:
         return jsonify({
@@ -337,7 +335,10 @@ def upload_avatar():
         avatar = request.files['avatar']
 
         filename = secure_filename(avatar.filename)
-        if avatar.filename.find('.png'):
+        # 以防文件不存在
+        if not os.path.exists('static/avatar'):
+            os.makedirs('static/avatar')
+        if avatar.filename.find('.png') != -1:
             avatar.save(os.path.join('static/avatar', filename+current_user + '.png'))
             avatar = "http://47.105.178.110:8000/" + os.path.join('user/avatar', filename + current_user + '.png')
         else :
@@ -361,6 +362,13 @@ def upload_avatar():
 # 获取图片
 @user_api.route('/avatar/<path:filename>', methods=['GET'])
 def send_image(filename):
+    path = os.path.join('static/avatar', filename)
+    # 以防文件不存在
+    if not os.path.exists(path):
+        return jsonify({
+            'result': 'false',
+            'msg': '文件不存在'
+        })
     return send_from_directory('static/avatar', filename)
 
 
@@ -404,6 +412,9 @@ def mod_secure():
     # 判重
     cursor.execute('SELECT * FROM User WHERE username = "%s" AND password_question = "%s" AND password_answer = "%s"' % (current_user, password_question, password_answer))
     if len(cursor.fetchall()) >= 1:
+        conn.commit()
+        cursor.close()
+        conn.close()
         return jsonify({
             'result': 'success',
         })

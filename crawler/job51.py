@@ -3,13 +3,18 @@ import json
 import os
 import random
 import time
+import sys
+
+# 防止找不到包
+sys.path.append('..')
+
+
 
 import pandas as pd
-import pymysql
 from playwright.sync_api import sync_playwright  # 同步模式
 from retrying import retry
 
-from sql import init_database
+from sql_operation import init_database
 
 # 定义列名为全局变量
 columns = ['岗位名称', '城市', "薪资", "发布时间", "工作经验", '学历要求', '公司名称', '公司类型', '公司人数',
@@ -24,7 +29,7 @@ columns = ['岗位名称', '城市', "薪资", "发布时间", "工作经验", '
 def Sync_Playwright(url):
     """处理滑块"""
     with sync_playwright() as fp:
-        bs = fp.firefox.launch(headless=True)  # 禁用无头模式(也就是启动不启动浏览器的区别)
+        bs = fp.chromium.launch(headless=True)  # 禁用无头模式(也就是启动不启动浏览器的区别)
         page = bs.new_page()  # 新建选项卡
         page.goto(url)  # 加载页面
         dropbutton = page.locator('#nc_1_n1z')
@@ -171,7 +176,7 @@ def get_data(keyword):
     # 将时间戳转换为指定格式的字符串
     formatted_timestamp = "{:06d}".format(timestamp)
     # 大小可以改
-    for page in range(1, 12):
+    for page in range(1, 22):
         url = (f'https://we.51job.com/api/job/search-pc?api_key=51job&timestamp={formatted_timestamp}&keyword={keyword}'
                f'&searchType=2&function=&industry=&jobArea&jobArea2=&landmark=&metro=&salary=&workYear=&degree=&'
                f'companyType=&companySize=&jobType=&issueDate=&sortType=3&pageNum={page}&requestId='
