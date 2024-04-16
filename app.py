@@ -3,13 +3,13 @@ from flask import Flask
 import user
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-
+import data_analysis
 
 
 app = Flask(__name__, )
 CORS(app)
 app.register_blueprint(user.user_api, url_prefix='/user')
-
+app.register_blueprint(data_analysis.data_api, url_prefix='/data')
 
 
 # 设置普通JWT过期时间
