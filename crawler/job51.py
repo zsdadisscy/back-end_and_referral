@@ -27,7 +27,7 @@ columns = ['岗位名称', '城市', "薪资", "发布时间", "工作经验", '
 def Sync_Playwright(url):
     """处理滑块"""
     with sync_playwright() as fp:
-        bs = fp.firefox.launch(headless=True)  # 禁用无头模式(也就是启动不启动浏览器的区别)
+        bs = fp.firefox.launch(headless=False)  # 禁用无头模式(也就是启动不启动浏览器的区别)
         page = bs.new_page()  # 新建选项卡
         page.goto(url)  # 加载页面
         dropbutton = page.locator('#nc_1_n1z')

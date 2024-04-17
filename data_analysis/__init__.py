@@ -37,9 +37,15 @@ def get_data(keyword):
 @data_api.route('/judge_data', methods=['POST'])
 @jwt_required()
 def judge_data():
-    job = convert_characters(request.json.get('job', None))
+    job = request.json.get('job', None)
+    if job is None:
+        return jsonify({
+            'result': 'fail',
+            'msg': '参数错误'
+        })
+    job = convert_characters(job)
     conn, cursor = init_database()
-    cursor.execute('select * from job51 where jobTitle = %s', job)
+    cursor.execute('select * from job51_record where jobTitle = %s', job)
     data = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -58,7 +64,13 @@ def judge_data():
 @data_api.route('/analysis_data', methods=['POST'])
 @jwt_required()
 def analysis_data():
-    job = convert_characters(request.json.get('job', None))
+    job = request.json.get('job', None)
+    if job is None:
+        return jsonify({
+            'result': 'fail',
+            'msg': '参数错误'
+        })
+    job = convert_characters(job)
     data = get_data(job)
     if data.empty:
         return jsonify({
@@ -114,7 +126,12 @@ def analysis_data():
 @data_api.route('/register_data', methods=['POST'])
 @jwt_required()
 def register_data():
-    job = convert_characters(request.json.get('job', None))
+    job = request.json.get('job', None)
+    if job is None:
+        return jsonify({
+            'result': 'success',
+        })
+    job = convert_characters(job)
 
     # 创建数据库连接
     conn, cursor = init_database()
