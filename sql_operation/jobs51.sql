@@ -20,7 +20,8 @@ CREATE TABLE job51 (
                     jobHref VARCHAR(250),
                     companyHref VARCHAR(250),
                     industryType VARCHAR(50),
-                    jobDescribe VARCHAR(2000)
+                    jobDescribe VARCHAR(2000),
+                    city VARCHAR(30)
                 );
 
 # 加入索引

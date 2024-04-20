@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required
 from sql_operation import init_database
 import pandas as pd
 from crawler.job51 import convert_characters
+from crawler.job51 import get_province
 
 data_api = Blueprint('data', __name__)
 
@@ -118,7 +119,7 @@ def analysis_data():
         'degree_counts': {k: v for k, v in degree_counts.items() if k != ''},
         'companytype_counts': {k: v for k, v in companytype_counts.items() if k != ''},
         'date_counts_key': date_counts_keys,
-        'date_counts_values': date_counts_values
+        'date_counts_values': date_counts_values,
     })
 
 
@@ -159,3 +160,43 @@ def register_data():
         return jsonify({
             'result': 'fail',
         })
+
+
+@data_api.route('/province_data', methods=['POST'])
+@jwt_required()
+def province_data():
+    job = request.json.get('job', None)
+
+    if job is None:
+        return jsonify({
+            'result': 'fail',
+            'msg': '参数错误'
+        })
+    job = convert_characters(job)
+    data = get_data(job)
+    if data.empty:
+        return jsonify({
+            'result': 'fail',
+            'msg': '数据不存在'
+        })
+
+    # 处理省份
+    def fill_province(row):
+        if pd.isnull(row['province']) or row['province'] == '':
+            row['province'] = get_province(row['cityString'])
+            # 存进数据库
+            conn, cursor = init_database()
+            cursor.execute('update job51 set province = "%s" where id = %d' % (row['province'], row['id']))
+            conn.commit()
+            cursor.close()
+            conn.close()
+        return row
+
+    data = data.apply(fill_province, axis=1)
+    province_counts = data['province'].dropna().value_counts().to_dict()
+    province_counts = {k: v for k, v in province_counts.items() if k != ''}
+
+    return jsonify({
+        'result': 'success',
+        'province_counts': province_counts
+    })

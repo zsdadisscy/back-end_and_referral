@@ -4,6 +4,7 @@ import os
 import random
 import time
 import sys
+import requests
 
 # 防止找不到包
 sys.path.append('..')
@@ -18,6 +19,21 @@ from sql_operation import init_database
 columns = ['岗位名称', '城市', "薪资", "发布时间", "工作经验", '学历要求', '公司名称', '公司类型', '公司人数',
            '岗位链接', '公司链接', '行业类型', '岗位描述']
 
+
+# 用来获取省份
+def get_province(city):
+    # 这里采用高德地图的api，如果需要使用需要自己申请一个key，然后替换掉下面的key
+    # 官网地址 https://developer.amap.com/api/webservice/guide/api/georegeo
+    url = 'https://restapi.amap.com/v3/geocode/geo'
+    params = {
+        'key': '45f2d14634e443f0c298d94ed9babec8',
+        'address': city
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    if data['status'] == '1' and data['count'] == '1':
+        return data['geocodes'][0]['province']
+    return ''
 
 # 初始化数据库
 
@@ -94,9 +110,11 @@ def save_mysql(data, keyword):
         conn, cursor = init_database()
         # 插入数据
         for job in data:
+            # 获取省份
+            province = get_province(job[2])
             cursor.execute(f'''INSERT INTO job51 (jobTitle, jobName, cityString, provideSalaryString, issueDateString, workYearString, degreeString,companyName, companyTypeString,
-                 companySizeString,  jobHref, companyHref, industryType, jobDescribe) VALUES ( '{keyword}',
-                    '{job[0]}', '{job[1]}', '{job[2]}', '{job[3]}', '{job[4]}', '{job[5]}', '{job[6]}', '{job[7]}', '{job[8]}', '{job[9]}', '{job[10]}', '{job[11]}', '{job[12][:1999].replace("'", '"')}'
+                 companySizeString,  jobHref, companyHref, industryType, jobDescribe, province) VALUES ( '{keyword}',
+                    '{job[0]}', '{job[1]}', '{job[2]}', '{job[3]}', '{job[4]}', '{job[5]}', '{job[6]}', '{job[7]}', '{job[8]}', '{job[9]}', '{job[10]}', '{job[11]}', '{job[12][:1999].replace("'", '"')}', '{province}'
                 );''')
         conn.commit()
 
