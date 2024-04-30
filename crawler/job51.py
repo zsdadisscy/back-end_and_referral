@@ -232,7 +232,7 @@ def get_data(keyword):
             conn.commit()
             cursor.close()
             conn.close()
-
+            return True
         except Exception as e:
             # 日志
             # 获取当前日期和时间
@@ -249,6 +249,7 @@ def get_data(keyword):
                     f'./log/main/error_{current_year}_{current_month}_{current_day}_{current_hour}_{current_minute}_{current_second}.txt',
                     'w', encoding='utf-8') as f:
                 f.write(str(e))
+            return False
 
 
 if __name__ == '__main__':

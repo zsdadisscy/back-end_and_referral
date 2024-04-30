@@ -64,3 +64,10 @@ CREATE TABLE job51_crawl (
 
 # 加入索引
 CREATE INDEX index_job_title_crawl ON job51_record (jobTitle);
+
+
+# 管理员
+CREATE TABLE admin (
+                    username VARCHAR(30) PRIMARY KEY,
+                    password VARCHAR(130) UNIQUE
+                );

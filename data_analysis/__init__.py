@@ -8,8 +8,8 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from flask_jwt_extended import jwt_required
 from sql_operation import init_database
 import pandas as pd
-from crawler.job51 import convert_characters
-from crawler.job51 import get_province
+from crawler.job51 import get_province, get_data, convert_characters
+import asyncio
 
 data_api = Blueprint('data', __name__)
 
@@ -123,6 +123,17 @@ def analysis_data():
     })
 
 
+# 进行数据爬取
+async def crawl_data(job):
+    # 爬取成功
+    if get_data(job):
+        conn, cursor = init_database()
+        cursor.execute('DELETE FROM job51_crawl  where jobTitle = "%s"' % job)
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
 # 登记数据
 @data_api.route('/register_data', methods=['POST'])
 @jwt_required()
@@ -147,11 +158,16 @@ def register_data():
             'msg': '数据已存在'
         })
     res = cursor.execute('INSERT INTO job51_crawl(jobTitle) VALUES ("%s")' % job)
-
     # 关闭数据库连接
     conn.commit()
     cursor.close()
     conn.close()
+
+    # 进行数据爬取，因服务器ip被封禁问题和flask异步问题，暂时不使用异步，只留下接口
+    # asyncio.create_task(crawl_data(job))
+
+    crawl_data(job)
+
     if res:
         return jsonify({
             'result': 'success',

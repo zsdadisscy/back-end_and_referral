@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identi
 from sql_operation import init_database
 import os
 from werkzeug.utils import secure_filename
+from jwt_judge import user_jwt_required
 
 user_api = Blueprint('user', __name__)
 
@@ -20,6 +21,7 @@ def refresh():
     access_token = create_access_token(identity=current_user)
     return jsonify(access_token=access_token)
 
+
 # 用户登录函数
 @user_api.route('/login', methods=['POST'])
 def login():
@@ -28,7 +30,7 @@ def login():
 
     # cursor, conn = None, None
     conn, cursor = init_database()
-    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password="%s"'% (username, password))
+    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password="%s"' % (username, password))
     # cursor.execute('INSERT INTO User(username, password, gender, education) VALUES ("admin1", "admin1", "男", "本科");')
     conn.commit()
     conn.close()
@@ -39,14 +41,15 @@ def login():
         return jsonify(
             {
                 "result": "success",
-                "access":access_token,
-                "refresh":refresh_token,
+                "access": access_token,
+                "refresh": refresh_token,
             })
     else:
         return jsonify({
             "result": "false",
             "msg": "用户名或密码错误"
         })
+
 
 # 注册
 @user_api.route('/register', methods=['POST'])
@@ -71,7 +74,9 @@ def register():
             "msg": "用户已存在"
         })
 
-    res = cursor.execute('INSERT INTO User(username, password, password_question, password_answer) VALUES ("%s", "%s", "%s", "%s")' % (username, password, password_question, password_answer))
+    res = cursor.execute(
+        'INSERT INTO User(username, password, password_question, password_answer) VALUES ("%s", "%s", "%s", "%s")' % (
+        username, password, password_question, password_answer))
     conn.commit()
     cursor.close()
     conn.close()
@@ -85,9 +90,10 @@ def register():
             'msg': '注册失败'
         })
 
+
 # 获取用户信息
 @user_api.route('/get_info', methods=['GET'])
-@jwt_required()
+@user_jwt_required
 def get_info():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -122,9 +128,10 @@ def get_info():
             "msg": "未知错误"
         })
 
+
 # 判断是否需要完善用户信息
 @user_api.route('/get_status', methods=['GET'])
-@jwt_required()
+@user_jwt_required
 def get_status():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -151,6 +158,7 @@ def get_status():
         cursor.close()
         conn.close()
 
+
 # 判断用户是否存在
 @user_api.route('/judge_user', methods=['POST'])
 def judge_user():
@@ -173,14 +181,16 @@ def judge_user():
             "msg": "用户不存在"
         })
 
+
 # 判断jwt是否有效
 @user_api.route('/judge_online', methods=['GET'])
-@jwt_required()
+@user_jwt_required
 def judge_online():
     print(request)
     return jsonify({
         'result': 'success'
     })
+
 
 # 验证密保问题
 @user_api.route('/validation_secure', methods=['POST'])
@@ -188,7 +198,8 @@ def validation_secure():
     username = request.json.get("username", None)
     password_answer = request.json.get('password_answer', None)
     conn, cursor = init_database()
-    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
+    user = cursor.execute(
+        'SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
     conn.commit()
     cursor.close()
     conn.close()
@@ -224,7 +235,8 @@ def secure_passwd():
             }
         )
     conn, cursor = init_database()
-    user = cursor.execute('SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
+    user = cursor.execute(
+        'SELECT * FROM User WHERE username="%s" AND password_answer="%s"' % (username, password_answer))
     if not user:
         return jsonify({
             'result': 'false',
@@ -243,9 +255,10 @@ def secure_passwd():
         'msg': '修改密码失败，请稍后再试'
     })
 
+
 # 用户修改密码
 @user_api.route('/mod_passwd', methods=['POST'])
-@jwt_required()
+@user_jwt_required
 def mod_passwd():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -281,9 +294,10 @@ def mod_passwd():
         'msg': '修改失败请稍后再试'
     })
 
+
 # 修改用户资料
 @user_api.route('/mod_info', methods=['POST'])
-@jwt_required()
+@user_jwt_required
 def mod_info():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -296,7 +310,8 @@ def mod_info():
     interest_position = request.json.get('interest_position', user[6])
     interest_city = request.json.get('interest_city', user[9])
     education = request.json.get('education', user[10])
-    if name == user[1] and gender == user[3] and age == user[4] and major == user[5] and interest_position == user[6] and interest_city == user[9] and education == user[10]:
+    if name == user[1] and gender == user[3] and age == user[4] and major == user[5] and interest_position == user[
+        6] and interest_city == user[9] and education == user[10]:
         conn.commit()
         cursor.close()
         conn.close()
@@ -319,9 +334,10 @@ def mod_info():
         'msg': '修改失败，请稍后再试'
     })
 
+
 # 更新头像
 @user_api.route('/upload_avatar', methods=['POST'])
-@jwt_required()
+@user_jwt_required
 def upload_avatar():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -339,14 +355,14 @@ def upload_avatar():
         if not os.path.exists('static/avatar'):
             os.makedirs('static/avatar')
         if avatar.filename.find('.png') != -1:
-            avatar.save(os.path.join('static/avatar', filename+current_user + '.png'))
+            avatar.save(os.path.join('static/avatar', filename + current_user + '.png'))
             avatar = "http://47.105.178.110:8000/" + os.path.join('user/avatar', filename + current_user + '.png')
-        else :
-            avatar.save(os.path.join('static/avatar', filename+current_user + '.jpeg'))
+        else:
+            avatar.save(os.path.join('static/avatar', filename + current_user + '.jpeg'))
             avatar = "http://47.105.178.110:8000/" + os.path.join('user/avatar',
-                                                                         filename + current_user + '.jpeg')
+                                                                  filename + current_user + '.jpeg')
     res = cursor.execute(
-        "UPDATE User SET  avatar = '%s' WHERE username = '%s';" %( avatar, current_user))
+        "UPDATE User SET  avatar = '%s' WHERE username = '%s';" % (avatar, current_user))
     conn.commit()
     cursor.close()
     conn.close()
@@ -358,6 +374,7 @@ def upload_avatar():
         'result': 'false',
         'msg': '修改失败，请稍后再试'
     })
+
 
 # 获取图片
 @user_api.route('/avatar/<path:filename>', methods=['GET'])
@@ -374,7 +391,7 @@ def send_image(filename):
 
 # 获取用户密保
 @user_api.route('/get_secure', methods=['GET'])
-@jwt_required()
+@user_jwt_required
 def get_secure():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -396,9 +413,10 @@ def get_secure():
         "msg": "未知错误"
     })
 
+
 # 修改密保
 @user_api.route('/mod_secure', methods=['POST'])
-@jwt_required()
+@user_jwt_required
 def mod_secure():
     current_user = get_jwt_identity()
     conn, cursor = init_database()
@@ -410,7 +428,9 @@ def mod_secure():
             'msg': '密保问题或者答案不能为空'
         })
     # 判重
-    cursor.execute('SELECT * FROM User WHERE username = "%s" AND password_question = "%s" AND password_answer = "%s"' % (current_user, password_question, password_answer))
+    cursor.execute(
+        'SELECT * FROM User WHERE username = "%s" AND password_question = "%s" AND password_answer = "%s"' % (
+        current_user, password_question, password_answer))
     if len(cursor.fetchall()) >= 1:
         conn.commit()
         cursor.close()
@@ -418,7 +438,8 @@ def mod_secure():
         return jsonify({
             'result': 'success',
         })
-    res = cursor.execute('UPDATE User SET password_question = "%s", password_answer = "%s" WHERE username = "%s"' % (password_question, password_answer, current_user))
+    res = cursor.execute('UPDATE User SET password_question = "%s", password_answer = "%s" WHERE username = "%s"' % (
+    password_question, password_answer, current_user))
     conn.commit()
     cursor.close()
     conn.close()
