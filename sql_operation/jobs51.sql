@@ -3,8 +3,32 @@ CREATE DATABASE jobs51;
 # ALTER DATABASE jobs51 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 use jobs51;
-DROP TABLE IF EXISTS job51;
 
+
+# 数据待抓取表
+DROP TABLE IF EXISTS job51_crawl;
+CREATE TABLE job51_crawl (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    jobTitle VARCHAR(30) UNIQUE
+                );
+# 加入索引
+CREATE INDEX index_job_title_crawl ON job51_crawl(jobTitle);
+
+# 时间戳，爬取记录
+DROP TABLE IF EXISTS job51_record;
+CREATE TABLE job51_record (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    jobTitle VARCHAR(30) UNIQUE,
+                    # 添加插入时间
+                    insertTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+                );
+
+# 加入索引
+CREATE INDEX index_job_title_record ON job51_record (jobTitle);
+
+
+DROP TABLE IF EXISTS job51;
 CREATE TABLE job51 (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     jobTitle VARCHAR(30),
@@ -21,11 +45,12 @@ CREATE TABLE job51 (
                     companyHref VARCHAR(250),
                     industryType VARCHAR(50),
                     jobDescribe VARCHAR(2000),
-                    city VARCHAR(30)
+                    province VARCHAR(30),
+                    FOREIGN KEY (jobTitle) REFERENCES job51_record(jobTitle)
                 );
-
 # 加入索引
 CREATE INDEX index_job_title ON job51 (jobTitle);
+
 
 DROP TABLE IF EXISTS User;
 CREATE TABLE User (
@@ -43,30 +68,9 @@ CREATE TABLE User (
     avatar VARCHAR(255)
 );
 
-# 时间戳
-CREATE TABLE job51_record (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    jobTitle VARCHAR(30) UNIQUE,
-                    # 添加插入时间
-                    insertTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-                );
-
-# 加入索引
-CREATE INDEX index_job_title_record ON job51_record (jobTitle);
-
-# 数据抓取表
-DROP TABLE IF EXISTS job51_crawl;
-CREATE TABLE job51_crawl (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    jobTitle VARCHAR(30) UNIQUE
-                );
-
-# 加入索引
-CREATE INDEX index_job_title_crawl ON job51_record (jobTitle);
-
 
 # 管理员
+Drop TABLE IF EXISTS admin;
 CREATE TABLE admin (
                     username VARCHAR(30) PRIMARY KEY,
                     password VARCHAR(130) UNIQUE

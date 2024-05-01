@@ -72,6 +72,7 @@ def analysis_data():
             'msg': '参数错误'
         })
     job = convert_characters(job)
+    # 获取数据库中数据
     data = get_data(job)
     if data.empty:
         return jsonify({

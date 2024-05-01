@@ -35,6 +35,7 @@ def get_province(city):
         return data['geocodes'][0]['province']
     return ''
 
+
 # 初始化数据库
 
 
@@ -43,7 +44,7 @@ def get_province(city):
 def Sync_Playwright(url):
     """处理滑块"""
     with sync_playwright() as fp:
-        bs = fp.firefox.launch(headless=False)  # 禁用无头模式(也就是启动不启动浏览器的区别)
+        bs = fp.firefox.launch(headless=True)  # 禁用无头模式(也就是启动不启动浏览器的区别)
         page = bs.new_page()  # 新建选项卡
         page.goto(url)  # 加载页面
         dropbutton = page.locator('#nc_1_n1z')
@@ -112,6 +113,11 @@ def save_mysql(data, keyword):
         for job in data:
             # 获取省份
             province = get_province(job[2])
+            # 检查jobTitle是否存在于job51_record表中
+            cursor.execute('SELECT * FROM job51_record WHERE jobTitle = "%s"' % keyword)
+            res = cursor.fetchall()
+            if len(res) == 0:
+                raise ValueError(f'jobTitle "{keyword}" does not exist in job51_record table')
             cursor.execute(f'''INSERT INTO job51 (jobTitle, jobName, cityString, provideSalaryString, issueDateString, workYearString, degreeString,companyName, companyTypeString,
                  companySizeString,  jobHref, companyHref, industryType, jobDescribe, province) VALUES ( '{keyword}',
                     '{job[0]}', '{job[1]}', '{job[2]}', '{job[3]}', '{job[4]}', '{job[5]}', '{job[6]}', '{job[7]}', '{job[8]}', '{job[9]}', '{job[10]}', '{job[11]}', '{job[12][:1999].replace("'", '"')}', '{province}'
@@ -181,12 +187,13 @@ def get_data(keyword):
     cursor.execute('select * from job51_record where jobTitle = "%s"' % keyword)
     res = cursor.fetchall()
 
+    # 可以增加一个判断，如果记录太少就更新
     if len(res) >= 1:
         if (datetime.datetime.now() - res[0][2]).days < 90:
             cursor.close()
             conn.close()
             return  # 90天内不再爬取
-        else: # 大于90天则删除原有数据
+        else:  # 大于90天则删除原有数据
             cursor.execute('delete from job51 where jobTitle = "%s"' % keyword)
 
     folder_path1 = "./log/main"  # 将此处替换为要判断或创建的文件夹路径
@@ -198,17 +205,20 @@ def get_data(keyword):
         os.makedirs(folder_path2)
     if not os.path.exists(folder_path3):
         os.makedirs(folder_path3)
-    # 获取当前时间的时间戳（秒）
-    timestamp = int(time.time())
-    # 将时间戳转换为指定格式的字符串
-    formatted_timestamp = "{:06d}".format(timestamp)
+
+    flag = 0
     # 大小可以改
-    for page in range(1, 11):
+    for page in range(1, 12):
+        # 获取当前时间的时间戳（秒）
+        timestamp = int(time.time())
+        # 将时间戳转换为指定格式的字符串
+        formatted_timestamp = "{:06d}".format(timestamp)
         url = (f'https://we.51job.com/api/job/search-pc?api_key=51job&timestamp={formatted_timestamp}&keyword={keyword}'
                f'&searchType=2&function=&industry=&jobArea&jobArea2=&landmark=&metro=&salary=&workYear=&degree=&'
                f'companyType=&companySize=&jobType=&issueDate=&sortType=3&pageNum={page}&requestId='
                f'&pageSize=100&source=1&accountId=&pageCode=sou%7Csou%7Csoulb')
         try:
+
             html = Sync_Playwright(url)
             job_list = []
             # 获取数据
@@ -216,8 +226,10 @@ def get_data(keyword):
             for job in jobs:
                 s = parseDataFields(job)
                 job_list.append(s)
-            save_data(job_list, keyword, 'mysql')
-            job_list.clear()
+
+            if len(job_list) == 0:
+                continue
+
             # 记录爬取时间
             conn, cursor = init_database()
             cursor.execute('select * from job51_record where jobTitle = "%s"' % keyword)
@@ -232,7 +244,10 @@ def get_data(keyword):
             conn.commit()
             cursor.close()
             conn.close()
-            return True
+
+            save_data(job_list, keyword, 'mysql')
+            job_list.clear()
+            flag += 1
         except Exception as e:
             # 日志
             # 获取当前日期和时间
@@ -249,7 +264,10 @@ def get_data(keyword):
                     f'./log/main/error_{current_year}_{current_month}_{current_day}_{current_hour}_{current_minute}_{current_second}.txt',
                     'w', encoding='utf-8') as f:
                 f.write(str(e))
-            return False
+    if flag >= 10:
+        return True
+    else:
+        return False
 
 
 if __name__ == '__main__':
