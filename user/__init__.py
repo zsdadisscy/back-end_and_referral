@@ -186,7 +186,7 @@ def judge_user():
 @user_api.route('/judge_online', methods=['GET'])
 @user_jwt_required
 def judge_online():
-    print(request)
+    # print(request)
     return jsonify({
         'result': 'success'
     })

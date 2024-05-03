@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import Flask
+from flask import Flask, render_template
 import user
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -24,9 +24,10 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=1)
 app.config['JWT_SECRET_KEY'] = 'hgdfcvuisdhgavoasghu7GJUFu67'
 jwt = JWTManager(app)
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    return render_template('index.html')
 
 
 
