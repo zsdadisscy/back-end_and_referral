@@ -26,7 +26,7 @@ def get_province(city):
     # 官网地址 https://developer.amap.com/api/webservice/guide/api/georegeo
     url = 'https://restapi.amap.com/v3/geocode/geo'
     params = {
-        'key': '45f2d14634e443f0c298d94ed9babec8',
+        'key': '',
         'address': city
     }
     response = requests.get(url, params=params)

@@ -1,0 +1,7 @@
+Flask~=3.0.2
+Werkzeug~=3.0.1
+requests~=2.31.0
+pandas~=2.2.1
+playwright~=1.42.0
+retrying~=1.3.4
+PyMySQL~=1.1.0
